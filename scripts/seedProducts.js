@@ -1,6 +1,7 @@
+require('dotenv').config(); // must be at the top
 const mongoose = require('mongoose');
-require('dotenv').config();
 const Product = require('../models/Product');
+
 
 const products = [
   {
@@ -70,14 +71,20 @@ const products = [
 
 const seedDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
+    if (!process.env.MONGO_URI) {
+      throw new Error("MONGO_URI is not defined in .env");
+    }
+
+    await mongoose.connect(process.env.MONGO_URI);
     console.log('✅ Connected to MongoDB');
-    
+
     await Product.deleteMany({});
     await Product.insertMany(products);
     console.log('✅ Products added to database!');
-    
-    mongoose.connection.close();
+
+    await mongoose.connection.close();
+    console.log('✅ Connection closed');
+    process.exit(0);
   } catch (error) {
     console.error('❌ Error:', error);
     process.exit(1);
