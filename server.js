@@ -1,6 +1,6 @@
 const express = require('express');
+const mongoose = require('mongoose');
 require('dotenv').config();
-const connectDB = require('./config/database');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
 const Product = require('./models/Product');
@@ -15,20 +15,26 @@ const contactRoutes = require('./routes/contact');
 const orderRoutes = require('./routes/orders');
 const paymentRoutes = require('./routes/payments');
 const authRoutes = require('./routes/auth');
-// ADD THIS LINE - Import address routes
 const addressRoutes = require('./routes/addresses');
 
 const app = express();
 
-// Connect DB
-connectDB();
+// CORS configuration - ADD YOUR FRONTEND URLS HERE
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'https://rekraft.in',
+  'https://www.rekraft.in',
+  'https://rekraft-frontend.vercel.app',
+  'https://rekraft-frontend-37tdkmv55-rekraft-ins-projects.vercel.app',
+  'https://rekraft-frontend-git-main-rekraft-ins-projects.vercel.app'
+];
 
-// CORS configuration
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Request-ID']
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Body parsing middleware
@@ -41,9 +47,29 @@ app.use((req, res, next) => {
   next();
 });
 
+// Connect to MongoDB
+const connectDB = async () => {
+  try {
+    console.log('🔌 Connecting to MongoDB...');
+    const mongoURI = process.env.MONGO_URI;
+    
+    if (!mongoURI) {
+      console.error('❌ MONGO_URI is not defined!');
+      console.log('💡 Check Render Environment Variables');
+      process.exit(1);
+    }
+    
+    await mongoose.connect(mongoURI);
+    console.log('✅ MongoDB Connected Successfully!');
+  } catch (error) {
+    console.error('❌ MongoDB Connection Failed:', error.message);
+    process.exit(1);
+  }
+};
+
 // Generate JWT Token
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+  return jwt.sign({ id }, process.env.JWT_SECRET || 'fallback-secret-key', { expiresIn: '30d' });
 };
 
 // -------- ROUTES --------
@@ -53,21 +79,39 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/auth', authRoutes);
-// ADD THIS LINE - Register address routes
 app.use('/api/user/addresses', addressRoutes);
 
-// -------- HEALTH CHECK ENDPOINT --------
+// -------- HEALTH CHECK --------
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
-    message: 'Backend server is running',
+    message: 'Rekraft Backend is running',
     timestamp: new Date().toISOString(),
-    database: 'Connected',
+    database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
     environment: process.env.NODE_ENV || 'development'
   });
 });
 
-// -------- DEFAULT SPECS --------
+// -------- ROOT ROUTE --------
+app.get('/', (req, res) => {
+  res.json({
+    message: '🚀 Rekraft Backend Server is running!',
+    apiUrl: 'https://rekraft-backend.onrender.com',
+    endpoints: {
+      health: 'GET /api/health',
+      products: 'GET /api/products',
+      register: 'POST /api/auth/register',
+      login: 'POST /api/auth/login',
+      user: 'GET /api/auth/me (protected)',
+      cart: 'GET /api/cart',
+      orders: 'GET /api/orders',
+      addresses: 'GET /api/user/addresses'
+    },
+    version: '1.0.0'
+  });
+});
+
+// -------- PRODUCTS API --------
 function getDefaultSpecs(category) {
   const specs = {
     apple: ["13.3\" Retina Display", "Apple M1/M2 Chip", "8GB RAM", "256GB SSD", "18hr Battery Life"],
@@ -81,31 +125,10 @@ function getDefaultSpecs(category) {
   return specs[category] || specs.dell;
 }
 
-// -------- ROOT ROUTE --------
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Rekraft Backend Server is running!',
-    endpoints: {
-      health: 'GET /api/health',
-      products: 'GET /api/products',
-      authRegister: 'POST /api/auth/register',
-      authLogin: 'POST /api/auth/login',
-      cart: 'GET /api/cart (protected)',
-      orders: 'GET /api/orders (protected)',
-      contact: 'POST /api/contact/send',
-      sell: 'POST /api/sell',
-      // ADD THIS LINE - Show address endpoints
-      addresses: 'GET/POST/PUT/DELETE /api/user/addresses (protected)'
-    },
-    version: '1.0.0'
-  });
-});
-
-// -------- PRODUCTS API --------
 app.get('/api/products', async (req, res) => {
   try {
     const products = await Product.find();
-
+    
     const transformed = products.map(product => ({
       id: product._id,
       name: product.name,
@@ -123,7 +146,7 @@ app.get('/api/products', async (req, res) => {
       inStock: true
     }));
 
-    console.log('📦 Products fetched:', transformed.length);
+    console.log(`📦 Sent ${transformed.length} products`);
     res.json(transformed);
   } catch (error) {
     console.error('❌ Products error:', error);
@@ -137,7 +160,7 @@ app.get('/api/products', async (req, res) => {
 app.get('/api/products/:id', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
-
+    
     if (!product) {
       return res.status(404).json({ 
         success: false,
@@ -167,40 +190,33 @@ app.get('/api/products/:id', async (req, res) => {
     console.error('❌ Product detail error:', error);
     res.status(500).json({ 
       success: false,
-      error: 'Server error fetching product details' 
+      error: 'Server error fetching product' 
     });
   }
 });
 
 // -------- AUTH API --------
-
-// Register
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { name, email, password, phone } = req.body;
-
-    console.log('🔄 Registration attempt:', { name, email, phone });
-
-    // Validation
+    
     if (!name || !email || !password || !phone) {
       return res.status(400).json({ 
         success: false,
-        error: 'All fields are required: name, email, password, phone' 
+        error: 'All fields required' 
       });
     }
-
+    
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ 
         success: false,
-        error: 'User already exists with this email' 
+        error: 'User already exists' 
       });
     }
-
+    
     const user = await User.create({ name, email, password, phone });
-
-    console.log('✅ User registered:', user.email);
-
+    
     res.status(201).json({
       success: true,
       data: {
@@ -212,27 +228,8 @@ app.post('/api/auth/register', async (req, res) => {
       },
       message: 'Registration successful!'
     });
-
   } catch (error) {
     console.error('❌ Registration error:', error);
-    
-    // MongoDB duplicate error
-    if (error.code === 11000) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'User already exists with this email' 
-      });
-    }
-    
-    // Validation errors
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(val => val.message);
-      return res.status(400).json({ 
-        success: false,
-        error: messages.join(', ') 
-      });
-    }
-    
     res.status(500).json({ 
       success: false,
       error: 'Server error during registration' 
@@ -240,42 +237,33 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-// Login
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    console.log('🔄 Login attempt:', email);
-
-    // Validation
+    
     if (!email || !password) {
       return res.status(400).json({ 
         success: false,
-        error: 'Email and password are required' 
+        error: 'Email and password required' 
       });
     }
-
+    
     const user = await User.findOne({ email });
-
     if (!user) {
       return res.status(401).json({ 
         success: false,
-        error: 'Invalid email or password' 
+        error: 'Invalid credentials' 
       });
     }
-
-    // Use matchPassword method
+    
     const isPasswordCorrect = await user.matchPassword(password);
-
     if (!isPasswordCorrect) {
       return res.status(401).json({ 
         success: false,
-        error: 'Invalid email or password' 
+        error: 'Invalid credentials' 
       });
     }
-
-    console.log('✅ User logged in:', user.email);
-
+    
     res.json({
       success: true,
       data: {
@@ -288,7 +276,6 @@ app.post('/api/auth/login', async (req, res) => {
       },
       message: 'Login successful!'
     });
-
   } catch (error) {
     console.error('❌ Login error:', error);
     res.status(500).json({ 
@@ -298,10 +285,8 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// Get current user (Protected)
 app.get('/api/auth/me', protect, async (req, res) => {
   try {
-    // Get the complete user with addresses
     const user = await User.findById(req.user._id);
     
     if (!user) {
@@ -335,11 +320,11 @@ app.use((req, res) => {
   res.status(404).json({ 
     success: false,
     error: 'Route not found',
-    requestedUrl: req.originalUrl 
+    url: req.originalUrl
   });
 });
 
-// -------- GLOBAL ERROR HANDLER --------
+// -------- ERROR HANDLER --------
 app.use((err, req, res, next) => {
   console.error('🚨 Server error:', err);
   res.status(500).json({ 
@@ -349,20 +334,24 @@ app.use((err, req, res, next) => {
 });
 
 // -------- START SERVER --------
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`✅ CORS enabled for: http://localhost:5173`);
-  console.log(`✅ Health check: http://localhost:${PORT}/api/health`);
-  console.log(`✅ Contact endpoint: POST http://localhost:${PORT}/api/contact/send`);
-  console.log(`✅ Sell endpoint: POST http://localhost:${PORT}/api/sell`);
-  console.log(`✅ Address endpoint: POST http://localhost:${PORT}/api/user/addresses`);
-  console.log(`✅ Available endpoints:`);
-  console.log(`   http://localhost:${PORT}/api/products`);
-  console.log(`   http://localhost:${PORT}/api/auth/register`);
-  console.log(`   http://localhost:${PORT}/api/auth/login`);
-  console.log(`   http://localhost:${PORT}/api/cart`);
-  console.log(`   http://localhost:${PORT}/api/orders`);
-  console.log(`   http://localhost:${PORT}/api/contact`);
-  console.log(`   http://localhost:${PORT}/api/user/addresses`);
-});
+const startServer = async () => {
+  try {
+    // Connect to database first
+    await connectDB();
+    
+    const PORT = process.env.PORT || 10000;
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`🌍 API URL: https://rekraft-backend.onrender.com`);
+      console.log(`✅ Health Check: https://rekraft-backend.onrender.com/api/health`);
+      console.log(`📦 Products: https://rekraft-backend.onrender.com/api/products`);
+      console.log(`✅ MongoDB: Connected`);
+      console.log(`✅ CORS enabled for: ${allowedOrigins.join(', ')}`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
