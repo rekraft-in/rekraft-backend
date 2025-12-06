@@ -60,17 +60,21 @@ exports.addToCart = async (req, res) => {
   }
 };
 
-// Get user cart
+// In cartController.js - Ensure this is correct
 exports.getCart = async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
       .populate('cart.items.productId', 'name price image brand condition');
     
-    console.log('🛒 Cart fetched for user:', user.email);
+    console.log('🛒 Cart fetched for user:', user.email, 'Items:', user.cart.items.length);
     
     res.json({ 
       success: true,
-      cart: user.cart 
+      cart: {
+        items: user.cart.items,
+        totalPrice: user.cart.totalPrice,
+        updatedAt: user.cart.updatedAt
+      }
     });
   } catch (error) {
     console.error('❌ Cart fetch error:', error);
