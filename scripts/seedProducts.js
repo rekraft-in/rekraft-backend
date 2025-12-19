@@ -9,7 +9,6 @@ const products = [
     originalPrice: 45999,
     image:
       'https://i.dell.com/is/image/DellContent/content/dam/ss2/product-images/dell-client-products/notebooks/latitude-notebooks/13-5320/media-gallery/notebook-latitude-13-5320-t-gallery-1.psd',
-    condition: 'Refurbished - Excellent',
     category: 'laptops',
     brand: 'Dell',
     description:
@@ -29,7 +28,6 @@ const products = [
     originalPrice: 42999,
     image:
       'https://i.dell.com/is/image/DellContent/content/dam/ss2/product-images/dell-client-products/notebooks/latitude-notebooks/14-7400/media-gallery/notebook-latitude-14-7400-gallery-1.psd',
-    condition: 'Refurbished - Excellent',
     category: 'laptops',
     brand: 'Dell',
     description:
@@ -49,7 +47,6 @@ const products = [
     originalPrice: 38999,
     image:
       'https://i.dell.com/is/image/DellContent/content/dam/ss2/product-images/dell-client-products/notebooks/latitude-notebooks/14-5490/media-gallery/notebook-latitude-14-5490-gallery-1.psd',
-    condition: 'Refurbished - Very Good',
     category: 'laptops',
     brand: 'Dell',
     description:
@@ -69,7 +66,6 @@ const products = [
     originalPrice: 36999,
     image:
       'https://i.dell.com/is/image/DellContent/content/dam/ss2/product-images/dell-client-products/notebooks/latitude-notebooks/14-5480/media-gallery/notebook-latitude-14-5480-gallery-1.psd',
-    condition: 'Refurbished - Very Good',
     category: 'laptops',
     brand: 'Dell',
     description:
