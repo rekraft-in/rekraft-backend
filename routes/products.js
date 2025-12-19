@@ -1,4 +1,3 @@
-// routes/products.js - UPDATED & FIXED VERSION
 const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
@@ -44,7 +43,6 @@ const getTestProducts = () => {
       price: 64999,
       originalPrice: 79999,
       image: 'https://m.media-amazon.com/images/I/71TPda7cwUL._SL1500_.jpg',
-      condition: 'Excellent',
       category: 'apple',
       brand: 'Apple',
       description: 'Apple MacBook Air with M1 chip, 8GB RAM, 256GB SSD. Certified refurbished with 1-year warranty.',
@@ -60,7 +58,6 @@ const getTestProducts = () => {
       price: 54999,
       originalPrice: 69999,
       image: 'https://m.media-amazon.com/images/I/71h6PpG9uQS._SL1500_.jpg',
-      condition: 'Good',
       category: 'windows',
       brand: 'Dell',
       description: 'Dell XPS 13 Ultrabook with Intel Core i5, 8GB RAM, 512GB SSD. Professionally refurbished.',
@@ -76,7 +73,6 @@ const getTestProducts = () => {
       price: 59999,
       originalPrice: 74999,
       image: 'https://m.media-amazon.com/images/I/61g+7-wgJCL._SL1500_.jpg',
-      condition: 'Very Good',
       category: 'windows',
       brand: 'Lenovo',
       description: 'Lenovo ThinkPad X1 Carbon with Intel i7, 16GB RAM, 512GB SSD. Business-grade refurbished laptop.',
@@ -92,7 +88,6 @@ const getTestProducts = () => {
       price: 52999,
       originalPrice: 67999,
       image: 'https://m.media-amazon.com/images/I/71H0V8B8mzL._SL1500_.jpg',
-      condition: 'Excellent',
       category: 'windows',
       brand: 'HP',
       description: 'HP Spectre x360 2-in-1 convertible laptop with touch display and pen support.',
@@ -202,8 +197,7 @@ router.get('/', withTimeout(async (req, res) => {
         brand: product.brand,
         category: product.category,
         price: product.price,
-        image: product.image,
-        condition: product.condition
+        image: product.image
       }));
       return res.json(suggestions);
     }
@@ -246,8 +240,7 @@ router.get('/', withTimeout(async (req, res) => {
         brand: product.brand,
         category: product.category,
         price: product.price,
-        image: product.image,
-        condition: product.condition
+        image: product.image
       }));
       return res.json(suggestions);
     }
